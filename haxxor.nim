@@ -1,10 +1,12 @@
 import epubInfos, options
-import asynchttpserver, asyncdispatch, uri, json, ospaths
+import asynchttpserver, asyncdispatch, uri, json, ospaths, strutils
 import xmlparser, xmltree, templates, strutils
 
-# var epub = openEpub("test/t01.epub")
+var epub = openEpub("test/t01.epub")
 # var epub = openEpub("test/The_vision_of_hell._by_Dante_Alighieri.epub")
-var epub = openEpub("test/Dracula_-_by_Bram_Stoker.epub")
+# var epub = openEpub("test/t02.epub")
+# var epub = openEpub("test/Dracula_-_by_Bram_Stoker.epub")
+# var epub = openEpub("test/The_Adventures_of_Sherlock_Holmes_-_by_Arthur_Conan_Doyle.epub")
 epub.extractToc()
 epub.extractInfo()
 
@@ -21,14 +23,19 @@ proc extendWithMain(content: string, title: string = "", toc: string = ""): stri
           overflow: scroll;
           position: fixed;
           right: 0px;
+          height: 100%;
+          max-width: 500px;
         }
         #content {
           max-width: 600px;
         }
+        #bookInfo table {
+          border: solid
+        }       
       </style>
 
       <body>
-          <h1>$title</h1>
+          <small>$title</small>
           
           <div id="toc">
             $toc
@@ -60,28 +67,51 @@ proc renderToc(epub: Epub): string =
     result.add renderEntry(entry)
   result.add "</ul>"
 
-# proc renderInfo(epub: Epub): string = tmpli """
-#     Info:
-#     <table>
-
-#     </table>
-#   """
+proc renderInfo(epub: Epub): string = tmpli """
+    <div id="bookInfo">
+      <strong>Info:</strong>
+      <table>
+      <tr>
+        <td>title</td>
+        <td>$(epub.title)</td>
+      </tr>
+      <tr>
+        <td>creator</td>
+        <td>$(epub.creator)</td>
+      </tr>
+      <tr>
+        <td>publisher</td>
+        <td>$(epub.publisher)</td>
+      </tr>
+      <tr>
+        <td>date</td>
+        <td>$(epub.date)</td>
+      </tr>
+      <tr>
+        <td>subject</td>
+        <td>$(epub.subject)</td>
+      </tr>
+      <tr>
+        <td>language</td>
+        <td>$(epub.language)</td>
+      </tr>
+      </table>
+    </div>
+  """
 
 var server = newAsyncHttpServer()
 proc cb(req: Request) {.async, gcsafe.} =
   echo req.url
   if req.url.path == "/":
-    # let ret = renderToc(epub.get("OEBPS/content.opf"))
-    let ret = epub.renderToc()
+    let ret = epub.renderInfo() & "<br>" & epub.renderToc()
     await req.respond(Http200, ret.extendWithMain("Table of content"))
   else:
     try:
       if req.url.path.endsWith("html"):
-        # await req.respond(Http200, epub.get("OEBPS/" / req.url.path).extendWithMain(req.url.path, toc = renderToc(epub.get("OEBPS/content.opf"))))
-        await req.respond(Http200, epub.get("OEBPS/" / req.url.path).extendWithMain(req.url.path, toc = epub.renderToc()))
+        await req.respond(Http200, epub.get(epub.basePath / req.url.path.strip(chars = {'/'})).extendWithMain(req.url.path, toc = epub.renderToc()))
         return
       else:  
-        await req.respond(Http200, epub.get("OEBPS/" / req.url.path))
+        await req.respond(Http200, epub.get(epub.basePath / req.url.path))
         return
     except:
       await req.respond(Http404, "404 not found")
