@@ -1,8 +1,14 @@
 ## extracts some infos from an epub
-import zip/zipfiles, streams, xmlparser, xmltree, options, strutils, strtabs, ospaths
+import zip/zipfiles, streams, xmlparser, xmltree, options, strutils, strtabs, ospaths, tables
 type
-  Epub = ZipArchive
-  EpubInfo = object
+  TocEntry* = object
+    label*: string
+    content*: string
+    headerTag*: string
+    subentries*: EpubToc
+  EpubToc* = seq[TocEntry]
+  Epub* = object
+    raw: ZipArchive
     title: string
     creator: string
     publisher: string
@@ -10,12 +16,13 @@ type
     subject: string
     language: string
     coverImage: string
+    toc*: EpubToc
 
-proc openEpub*(path: string): Option[ZipArchive] =
+proc openEpub*(path: string): Epub =
   if not path.endsWith("epub"): return
-  var epub: ZipArchive
-  if not epub.open(path): return
-  else: return some[ZipArchive](epub)
+  var epub: Epub
+  if not epub.raw.open(path): return
+  else: return epub
 
 template firstOrEmpty(se: auto): auto = 
   if se.len > 0:
@@ -23,43 +30,58 @@ template firstOrEmpty(se: auto): auto =
   else:
     ""
 
-proc extractInfo(epub: var Epub): EpubInfo = 
-  result = EpubInfo()
-  var fs = epub.getStream("OEBPS/content.opf")  
+proc extractInfo(epub: var Epub) = 
+  # result = EpubInfo()
+  var fs = epub.raw.getStream("OEBPS/content.opf")  
   let contentRaw = fs.readAll()
   let contentXml = contentRaw.parseXml()
-  result.creator = contentXml.findAll("dc:creator").firstOrEmpty
-  result.title = contentXml.findAll("dc:title").firstOrEmpty
-  result.publisher = contentXml.findAll("dc:publisher").firstOrEmpty
-  result.subject = contentXml.findAll("dc:subject").firstOrEmpty
-  result.language = contentXml.findAll("dc:language").firstOrEmpty
-  result.date = contentXml.findAll("dc:date").firstOrEmpty
+  epub.creator = contentXml.findAll("dc:creator").firstOrEmpty
+  epub.title = contentXml.findAll("dc:title").firstOrEmpty
+  epub.publisher = contentXml.findAll("dc:publisher").firstOrEmpty
+  epub.subject = contentXml.findAll("dc:subject").firstOrEmpty
+  epub.language = contentXml.findAll("dc:language").firstOrEmpty
+  epub.date = contentXml.findAll("dc:date").firstOrEmpty
   for elem in contentXml.findAll("meta"):
     var tags = elem.attrs()
     if tags.isNil: continue
     if not tags.hasKey("name"): continue
     if not (tags["name"] == "cover"): continue
     if not tags.hasKey("content"): continue
-    result.coverImage = tags["content"]
+    epub.coverImage = tags["content"]
 
 proc get*(epub: var Epub, path: string): string = 
-  var stream = epub.getStream(path)
+  var stream = epub.raw.getStream(path)
   if stream.isNil: 
     # return ""
     raise newException(ValueError, "404") 
   stream.readAll()
 
 proc extractCoverImage(epub: var Epub, path: string): string = 
-  var fs = epub.getStream("OEBPS/images/" / path)
-  return fs.readAll()
+  return epub.get("OEBPS/images/" / path)
+
+proc parseNavPoint(entry: XmlNode): TocEntry = 
+  result.headerTag = entry.attr("class")
+  result.label = entry.child("navLabel").innerText
+  result.content = entry.child("content").attr("src")
+  for subEntry in entry.findAll("navPoint"):
+    result.subentries.add parseNavPoint(subEntry)
+
+proc extractToc*(epub: var Epub) =
+  let toc = epub.get("OEBPS/toc.ncx").parseXml()
+  for entry in toc.child("navMap"):
+    epub.toc.add parseNavPoint(entry)  
 
 when isMainModule:
-  var epubOpt = openEpub("./test/t01.epub")
-  if isNone epubOpt:
-    echo "could not open epub"
-  var epub = epubOpt.get()
-  let info = epub.extractInfo
-  echo info
+  var epub = openEpub("./test/t01.epub")
+  epub.extractInfo()
+  epub.extractToc()
+  # if isNone epubOpt:
+  #   echo "could not open epub"
+  # var epub = epubOpt.get()
+  # echo repr epub
+
+  # let info = epub.extractInfo
+  # echo info
   # writeFile("cover.jpg", epub.extractCoverImage(info.coverImage))
 
 # echo epub.open("./test/t01.epub")

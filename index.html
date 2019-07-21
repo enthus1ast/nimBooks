@@ -1,0 +1,43 @@
+<html>
+
+<input id="search" placeholder="...type to search...">
+<div id="searchResults"></div>
+
+
+<script>
+
+  function fill(js) {
+    searchResultsDom = document.getElementById("searchResults");
+    searchResultsDom.innerHTML = js;
+  }
+
+  function search(e) {
+    console.log(e);
+    console.log(e.srcElement);
+    console.log(e.srcElement.value);
+
+    var xmlHttp = null;
+    try {
+      xmlHttp = new XMLHttpRequest();
+    } catch (e) {
+      // Fehlerbehandlung, wenn die Schnittstelle vom Browser nicht unterstützt wird.
+    }
+    if (xmlHttp) {
+      xmlHttp.open('GET', 'http://127.0.0.1:8976/?' + e.srcElement.value, true);
+      xmlHttp.onreadystatechange = function () {
+        if (xmlHttp.readyState == 4) {
+          // alert(xmlHttp.responseText);
+          fill(xmlHttp.responseText);
+          console.log(xmlHttp.responseText)
+
+        }
+      };
+      xmlHttp.send(null);
+    }
+  }
+
+  var searchObj = document.getElementById("search");
+  searchObj.addEventListener("keyup", search);
+
+</script>
+</html>
