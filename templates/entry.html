@@ -1,0 +1,10 @@
+<li>
+  <a href="/$(entry.content)" class="$(entry.headerTag)">
+    $(entry.label)
+  </a></$(entry.headerTag)>
+</li>
+<ul>
+$for subentry in entry.subentries {
+  $(renderEntry(subentry))
+}
+</ul>

@@ -23,7 +23,6 @@ type
 proc get*(epub: var Epub, path: string): string = 
   var stream = epub.raw.getStream(path)
   if stream.isNil: 
-    # return ""
     raise newException(ValueError, "not found: " & path) 
   stream.readAll()
 
@@ -33,9 +32,6 @@ proc extractContentPath(epub: var Epub) =
     epub.basePath = epub.contentPath.split("/")[0]
   else:
     epub.basePath = ""
-  # if basePath == "":
-    # basePath = "/"
-  # epub.basePath = 
   echo "Base Path:" , epub.basePath
 
 proc openEpub*(path: string): Epub =

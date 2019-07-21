@@ -1,0 +1,8 @@
+  <i>$(epub.creator)</i><br>
+  <strong>$(epub.title)</strong><br>
+  <ul>
+    $for entry in epub.toc {
+      $(renderEntry(entry))
+    }
+  </ul>
+  
