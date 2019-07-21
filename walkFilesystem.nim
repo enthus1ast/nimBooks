@@ -15,5 +15,5 @@ proc genBooks*(path: string, booksTxt = "BOOKS.txt") =
   booksFile.close()
 
 when isMainModule:
-  const path = """/var/run/user/1000/gvfs/smb-share:server=192.168.2.155,share=public/books/Epubs_A-Z/"""
+  const path = """books"""
   genBooks(path)
