@@ -2,8 +2,11 @@ import epubInfos, options
 import asynchttpserver, asyncdispatch, uri, json, ospaths
 import xmlparser, xmltree, templates, strutils
 
-var epub = openEpub("test/t01.epub")
+# var epub = openEpub("test/t01.epub")
+# var epub = openEpub("test/The_vision_of_hell._by_Dante_Alighieri.epub")
+var epub = openEpub("test/Dracula_-_by_Bram_Stoker.epub")
 epub.extractToc()
+epub.extractInfo()
 
 proc extendWithMain(content: string, title: string = "", toc: string = ""): string = tmpli html"""
       <html>
@@ -11,14 +14,27 @@ proc extendWithMain(content: string, title: string = "", toc: string = ""): stri
         <meta charset="utf-8"/>
         <title>$title</title>
       </head>
+
+      <style>
+        #toc {
+          float: right;
+          overflow: scroll;
+          position: fixed;
+          right: 0px;
+        }
+        #content {
+          max-width: 600px;
+        }
+      </style>
+
       <body>
           <h1>$title</h1>
           
-          <div id="toc" style="float: right;">
+          <div id="toc">
             $toc
           </div>
 
-          <div id="content" style="max-width: 600px;">
+          <div id="content">
             $content
           </div>
       </body>
@@ -34,26 +50,22 @@ proc renderEntry(entry: TocEntry): string = tmpli """
     </ul>
   """
 
-
 proc renderToc(epub: Epub): string = 
   result = ""
+  result.add "<i>" & epub.creator & "</i><br>"
+  result.add "<strong>" & epub.title & "</strong><br>"
   result.add "<ul>"
   for entry in epub.toc:
     # result.add "foo"
     result.add renderEntry(entry)
   result.add "</ul>"
 
-# proc renderToc(toc: string): string = 
-#   var xml = parseXml(toc)
-#   let guide = xml.child("guide")
-#   var content = ""
-#   # content = "<html><body><head></head>"
-#   content.add("<ul>")
-#   for capitle in guide.items:
-#     let lnk = """<a href="$#">$#</a>""" % [$capitle.attr("href"), $capitle.attr("href")]
-#     content.add("<li>" & lnk &  "</li>")
-#   content.add("</ul>")
-#   result = content
+# proc renderInfo(epub: Epub): string = tmpli """
+#     Info:
+#     <table>
+
+#     </table>
+#   """
 
 var server = newAsyncHttpServer()
 proc cb(req: Request) {.async, gcsafe.} =

@@ -9,13 +9,13 @@ type
   EpubToc* = seq[TocEntry]
   Epub* = object
     raw: ZipArchive
-    title: string
-    creator: string
-    publisher: string
-    date: string
-    subject: string
-    language: string
-    coverImage: string
+    title*: string
+    creator*: string
+    publisher*: string
+    date*: string
+    subject*: string
+    language*: string
+    coverImage*: string
     toc*: EpubToc
 
 proc openEpub*(path: string): Epub =
@@ -30,8 +30,7 @@ template firstOrEmpty(se: auto): auto =
   else:
     ""
 
-proc extractInfo(epub: var Epub) = 
-  # result = EpubInfo()
+proc extractInfo*(epub: var Epub) = 
   var fs = epub.raw.getStream("OEBPS/content.opf")  
   let contentRaw = fs.readAll()
   let contentXml = contentRaw.parseXml()
@@ -56,8 +55,8 @@ proc get*(epub: var Epub, path: string): string =
     raise newException(ValueError, "404") 
   stream.readAll()
 
-proc extractCoverImage(epub: var Epub, path: string): string = 
-  return epub.get("OEBPS/images/" / path)
+# proc extractCoverImage(epub: var Epub, path: string): string = 
+#   return epub.get("OEBPS/images/" / path)
 
 proc parseNavPoint(entry: XmlNode): TocEntry = 
   result.headerTag = entry.attr("class")
