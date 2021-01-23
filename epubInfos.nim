@@ -84,6 +84,7 @@ when isMainModule:
   import cligen
   import json
   import md5
+  import os
 
   proc buildJson(epub: Epub): JsonNode =
     result = %* {
@@ -95,7 +96,7 @@ when isMainModule:
       "language": epub.language,
     }
 
-  proc extract(path: string, doMd5 = false): int =
+  proc extract(path: string, doMd5 = false, addPath = false): int =
     var epub = openEpub(path)
     epub.extractInfo()
     #  epub.extractToc()
@@ -105,6 +106,8 @@ when isMainModule:
       let cont = fh.readAll()
       let md5Hash = toMD5(cont)
       js["md5"] = %* ($md5Hash).toLower()
+    if addPath:
+      js["path"] = %* (path.absolutePath())
     echo js
     return 0
 
